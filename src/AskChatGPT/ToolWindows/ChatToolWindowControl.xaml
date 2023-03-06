@@ -1,0 +1,103 @@
+﻿<UserControl x:Class="AskChatGPT.ChatToolWindowControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:imaging="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.Imaging"
+             xmlns:theming="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Imaging"
+             xmlns:util="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Utilities"
+             xmlns:catalog="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.ImageCatalog"
+             xmlns:toolkit="clr-namespace:Community.VisualStudio.Toolkit;assembly=Community.VisualStudio.Toolkit"
+             xmlns:vsShell="clr-namespace:Microsoft.Internal.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
+             xmlns:local="clr-namespace:AskChatGPT.ToolWindows"
+             toolkit:Themes.UseVsTheme="True"
+             mc:Ignorable="d"
+             d:DesignHeight="300"
+             d:DesignWidth="300"
+             Name="MyToolWindow">
+    <UserControl.DataContext>
+        <local:ChatToolWindowControlViewModel/>
+    </UserControl.DataContext>
+    <UserControl.InputBindings>
+        <KeyBinding Command="{Binding PromptCommand}" Key="Return" Modifiers="Ctrl"></KeyBinding>
+    </UserControl.InputBindings>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel
+            Grid.Row="1"
+            >
+            <Label 
+                Content="Enter your question:"/>
+            <ComboBox
+                Text="{Binding CurrentCommandText, UpdateSourceTrigger=PropertyChanged}"
+                IsEditable="True"
+                MaxHeight="400"
+                IsEnabled="{Binding IsNotBusy}"
+                ItemsSource="{Binding RecentCommands}"
+                Margin="4,0"
+                />
+            <Label 
+                Content="Enter additional source code:"
+                />
+            <TextBox
+                Text="{Binding CurrentSourceCode, UpdateSourceTrigger=PropertyChanged}"
+                AcceptsReturn="True"
+                MaxHeight="400"
+                VerticalScrollBarVisibility="Auto"
+                FontFamily="Cascadia Mono"
+                IsEnabled="{Binding IsNotBusy}"
+                Margin="4,0"
+                />
+            <Grid>
+                <TextBlock 
+                    Text="Press Ctrl+Enter to send the question"
+                    Margin="4"
+                    Visibility="{Binding IsNotBusyIndicatorVisibility}"
+                />
+                <TextBlock
+                    Grid.Row="4"
+                    HorizontalAlignment="Right"
+                    Margin="4">
+                    <Hyperlink Click="ClearAllLink_Click">Clear All</Hyperlink>
+                </TextBlock>
+            </Grid>
+            <TextBlock
+                Margin="4"
+                Visibility="{Binding OpenAIMissingVisibility}">
+                <Run>Unable to find the ChatGPT key.</Run>
+                <LineBreak/>
+                <LineBreak/>
+                <Run>1. Please create an OpenAI ChatGPT API Key here:</Run>
+                <LineBreak/>
+                <Hyperlink>https://platform.openai.com/account/api-keys</Hyperlink>
+                <LineBreak/>
+                <Run>2) Create an environment variable OPENAI_API_KEY with your key</Run>
+                <LineBreak/>
+                <Run>3) Restart Visual Studio</Run>
+            </TextBlock>
+                
+            <TextBlock
+                Text="{Binding ErrorMessage}"
+                Visibility="{Binding ErrorMessageVisibility}"
+                Margin="4"
+                TextWrapping="Wrap"
+                />
+            <ProgressBar
+                IsIndeterminate="True"
+                Visibility="{Binding IsBusyIndicatorVisibility}"
+                Margin="4"
+                />
+        </StackPanel>
+
+        <ContentPresenter
+            Grid.Row="3"
+            Content="{Binding BrowserView}"
+            Margin="4"/>
+    </Grid>
+</UserControl>
