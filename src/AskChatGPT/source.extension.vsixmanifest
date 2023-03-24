@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="AskChatGPT.809330fd-3f8f-4d94-98a8-7214d273c896" Version="1.1" Language="en-US" Publisher="Adolfo Marinucci" />
+        <Identity Id="AskChatGPT.809330fd-3f8f-4d94-98a8-7214d273c896" Version="1.2" Language="en-US" Publisher="Adolfo Marinucci" />
         <DisplayName>AskChatGPT</DisplayName>
         <Description xml:space="preserve">This extension allows you to get help from ChatGPT directly inside Visual Studio.</Description>
         <Icon>Resources\Icon.png</Icon>
