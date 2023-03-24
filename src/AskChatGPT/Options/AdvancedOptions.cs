@@ -27,8 +27,15 @@ public class AdvancedOptions : BaseOptionModel<AdvancedOptions>, IRatingConfig
     [DefaultValue("csharp")]
     public string PreferredSourceLanguage { get; set; } = "csharp";
 
+    [DisplayName("OpenAI Model")]
+    [Description("Select the OpenAI model used to query chatGPT.")]
+    [DefaultValue("gpt-3.5-turbo")]
+    public string GptModel { get; set; } = "gpt-3.5-turbo";
+    
     [Browsable(false)]
     public int RatingRequests { get; set; }
+
+
 }
 
 public enum Theme

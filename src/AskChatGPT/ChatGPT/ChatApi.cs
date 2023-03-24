@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using AskChatGPT.ChatGPT.Models;
+using AskChatGPT.Options;
 
 namespace AskChatGPT.ChatGPT;
 
@@ -14,7 +15,6 @@ class ChatApi
     readonly HttpClient _httpClientApi;
 
     private const string API_URL = "https://api.openai.com/v1/chat/completions";
-    private const string MODEL = "gpt-3.5-turbo";
 
     private static readonly JsonSerializerSettings _defaultSerializerContext = 
         new JsonSerializerSettings
@@ -32,7 +32,7 @@ class ChatApi
     {
         var body = new 
         {
-            model = MODEL,
+            model = AdvancedOptions.Instance.GptModel,
             messages
         };
 
