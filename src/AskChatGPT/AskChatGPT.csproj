@@ -61,6 +61,7 @@
     <Compile Include="ToolWindows\ChatToolWindowControlViewModel.cs" />
     <Compile Include="Utils\BrowserWrapper.cs" />
     <Compile Include="Utils\MarkdownToHtmlConverter.cs" />
+    <Compile Include="Utils\MarkupCodeHighlighter.cs" />
     <Compile Include="VSCommandTable.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

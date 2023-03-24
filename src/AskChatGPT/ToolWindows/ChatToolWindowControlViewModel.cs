@@ -34,7 +34,7 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
     readonly static string _recentCommandsFilePath
         = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "recent_commands.json");
 
-    readonly static Dictionary<string, string> _copyCode = new();
+    readonly static MarkupCodeHighlighter _markupCodeHighlighter = new ();
 
     public ChatToolWindowControlViewModel()
     {
@@ -211,7 +211,7 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
             return;
         }
 
-        MessagesAsMarkdown = SetupCopyCodeLinks(
+        MessagesAsMarkdown = _markupCodeHighlighter.TransformMarkdown(
             string.Join(Environment.NewLine + Environment.NewLine,
             ChatMessages.Select(_ =>
             {
@@ -237,7 +237,7 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
     {
         ChatMessageSessions.Clear();
         ChatMessages.Clear();
-        _copyCode.Clear();
+        _markupCodeHighlighter.ClearCopyCodeLinks();
 
         await UpdateMarkdownToBrowser();
     }
@@ -273,57 +273,9 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
             JsonConvert.SerializeObject(RecentCommands));
     }
 
-    private string SetupCopyCodeLinks(string text)
-    {
-        int index = 0;
-        while (true)
-        {
-            int startingIndexOfCode = text.IndexOf("```", index);
-            if (startingIndexOfCode == -1)
-            {
-                break;
-            }
-
-            int endingIndexOfCode = text.IndexOf("```", startingIndexOfCode + 3);
-            if (endingIndexOfCode == -1)
-            {
-                break;
-            }
-
-            var codeToCopy = text
-                .Substring(startingIndexOfCode + 3, endingIndexOfCode - startingIndexOfCode - 3)
-                .TrimStart('\r').TrimStart('\n')
-                .TrimEnd('\n').TrimEnd('\r')
-                ;
-
-            if (!string.IsNullOrWhiteSpace(codeToCopy))
-            {
-                string sourceCopyId = Guid.NewGuid().ToString("N");
-                _copyCode.Add(sourceCopyId, codeToCopy);
-
-                text = text.Remove(startingIndexOfCode, 3);
-                var linkToCopyText = $@"
-[Copy](#copy_{sourceCopyId})
-
-```{AdvancedOptions.Instance.PreferredSourceLanguage}";
-                text = text.Insert(startingIndexOfCode, linkToCopyText);
-
-                index = text.IndexOf("```", startingIndexOfCode + linkToCopyText.Length) + 3;
-                continue;
-            }
-
-            index = endingIndexOfCode + 3;
-        }
-
-        return text;
-    }
-
     void OnCopyCodeToClipbard(string copyId)
     {
-        if (_copyCode.TryGetValue(copyId, out var codeToCopy))
-        {
-            Clipboard.SetText(codeToCopy);
-        }
+        _markupCodeHighlighter.Copy(copyId);
     }
 
     public void Receive(ShowChatGPTWindowMessage message)

@@ -54,17 +54,17 @@
                 IsEnabled="{Binding IsNotBusy}"
                 Margin="4,0"
                 />
-            <Grid>
+            <Grid
+                Visibility="{Binding IsNotBusyIndicatorVisibility}">
                 <TextBlock 
                     Text="Press Ctrl+Enter to send the question"
                     Margin="4"
-                    Visibility="{Binding IsNotBusyIndicatorVisibility}"
                 />
                 <TextBlock
                     Grid.Row="4"
                     HorizontalAlignment="Right"
                     Margin="4">
-                    <Hyperlink Click="ClearAllLink_Click">Clear All</Hyperlink>
+                    <Hyperlink Click="ClearAllLink_Click">Clear Chat History</Hyperlink>
                 </TextBlock>
             </Grid>
             <TextBlock
