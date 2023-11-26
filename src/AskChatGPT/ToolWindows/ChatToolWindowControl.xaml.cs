@@ -9,11 +9,20 @@ namespace AskChatGPT
         public ChatToolWindowControl()
         {
             InitializeComponent();
+
+            this.Loaded += ChatToolWindowControl_Loaded;
         }
 
-        private async void ClearAllLink_Click(object sender, RoutedEventArgs e)
+        private async void ChatToolWindowControl_Loaded(object sender, RoutedEventArgs e)
         {
-            await ((ChatToolWindowControlViewModel)DataContext).ClearAllMessages();
+            await ((ChatToolWindowControlViewModel)DataContext).InitializeAsync();
         }
+
+        private async void NewSession_Click(object sender, RoutedEventArgs e)
+        {
+            await ((ChatToolWindowControlViewModel)DataContext).NewMessageAsync();
+        }
+
+
     }
 }

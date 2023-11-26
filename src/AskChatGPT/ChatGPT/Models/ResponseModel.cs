@@ -41,7 +41,7 @@ record ResponseModel(
 
 record ResponseChoiceModel(
     [property: JsonProperty("index")] string Index,
-    [property: JsonProperty("message")] ChatMessage Message,
+    [property: JsonProperty("message")] ChatMessageModel Message,
     [property: JsonProperty("finish_reason")] string FinishReason
 );
 

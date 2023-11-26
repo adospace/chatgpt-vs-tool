@@ -24,25 +24,57 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <StackPanel
+
+        <ComboBox
+            Text="{Binding CurrentSessionName, UpdateSourceTrigger=PropertyChanged}"
+            IsEditable="True"
+            SelectedItem="{Binding CurrentSession, Mode=TwoWay}"
+            MaxHeight="400"
+            IsEnabled="{Binding IsNotBusy}"
+            ItemsSource="{Binding Sessions}"
+            Margin="4,0">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <TextBlock Text="{Binding TimeStamp}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                    </Grid>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <ContentPresenter
             Grid.Row="1"
+            Content="{Binding BrowserView}"
+            Margin="4"/>
+        
+        <StackPanel
+            Grid.Row="2"
             >
-            <Label 
-                Content="Enter your question:"/>
-            <ComboBox
+            <Grid
+                Visibility="{Binding IsNotBusyIndicatorVisibility}">
+                <Label 
+                    Content="Enter your question (Ctrl+Enter to send):"/>
+                <TextBlock
+                    Grid.Row="4"
+                    HorizontalAlignment="Right"
+                    Margin="4">
+                    <Hyperlink Click="NewSession_Click">New Session</Hyperlink>
+                </TextBlock>
+            </Grid>            
+            <TextBox
                 Text="{Binding CurrentCommandText, UpdateSourceTrigger=PropertyChanged}"
-                IsEditable="True"
+                AcceptsReturn="True"
                 MaxHeight="400"
+                VerticalScrollBarVisibility="Auto"
                 IsEnabled="{Binding IsNotBusy}"
-                ItemsSource="{Binding RecentCommands}"
                 Margin="4,0"
+                MinHeight="120"
                 />
-            <Label 
+            <!--<Label 
                 Content="Enter additional source code:"
                 />
             <TextBox
@@ -53,8 +85,12 @@
                 FontFamily="Cascadia Mono"
                 IsEnabled="{Binding IsNotBusy}"
                 Margin="4,0"
-                />
-            <Grid
+                />-->
+            <!--<TextBlock 
+                    Text="Press Ctrl+Enter to send the question"
+                    Margin="4"
+                />-->
+            <!--<Grid
                 Visibility="{Binding IsNotBusyIndicatorVisibility}">
                 <TextBlock 
                     Text="Press Ctrl+Enter to send the question"
@@ -66,7 +102,7 @@
                     Margin="4">
                     <Hyperlink Click="ClearAllLink_Click">Clear Chat History</Hyperlink>
                 </TextBlock>
-            </Grid>
+            </Grid>-->
             <TextBlock
                 Margin="4"
                 Visibility="{Binding OpenAIMissingVisibility}">
@@ -94,10 +130,5 @@
                 Margin="4"
                 />
         </StackPanel>
-
-        <ContentPresenter
-            Grid.Row="3"
-            Content="{Binding BrowserView}"
-            Margin="4"/>
     </Grid>
 </UserControl>

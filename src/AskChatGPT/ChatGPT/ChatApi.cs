@@ -28,7 +28,7 @@ class ChatApi
         _httpClientApi.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
     }
 
-    public async Task<IEnumerable<ChatMessage>> Prompt(IEnumerable<ChatMessage> messages)
+    public async Task<IEnumerable<ChatMessageModel>> Prompt(IEnumerable<ChatMessageModel> messages)
     {
         var body = new 
         {

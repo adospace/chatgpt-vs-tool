@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -10,6 +11,7 @@ using System.Windows;
 using System.Windows.Media.Animation;
 using AskChatGPT.ChatGPT;
 using AskChatGPT.ChatGPT.Models;
+using AskChatGPT.Data;
 using AskChatGPT.Options;
 using AskChatGPT.Utils;
 using CommunityToolkit.Mvvm;
@@ -31,33 +33,32 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 
     readonly BrowserWrapper _browser;
 
-    readonly static string _recentCommandsFilePath
-        = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "recent_commands.json");
-
     readonly static MarkupCodeHighlighter _markupCodeHighlighter = new ();
 
     public ChatToolWindowControlViewModel()
     {
-        PromptCommand = new AsyncRelayCommand(Prompt, () => IsNotBusy);
+        PromptCommand = new AsyncRelayCommand(PromptAsync, () => IsNotBusy);
 
-        _browser = new BrowserWrapper(OnCopyCodeToClipbard);
+        _browser = new BrowserWrapper(OnCopyCodeToClipboard);
 
         WeakReferenceMessenger.Default.Register<ShowChatGPTWindowMessage>(this);
-
-        if (File.Exists(_recentCommandsFilePath))
-        {
-            _recentCommands = new ObservableCollection<string>(
-                JsonConvert.DeserializeObject<string[]>(File.ReadAllText(_recentCommandsFilePath))
-                    .Where(_ => !string.IsNullOrWhiteSpace(_))
-                    .ToArray()
-                );
-        }
 
         var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
         if (!string.IsNullOrEmpty(apiKey))
         {
             _api = new ChatApi(apiKey);
         }
+    }
+
+    protected override async void OnPropertyChanged(PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(CurrentSession))
+        {
+            await SelectCurrentSessionAsync();
+            await UpdateMarkdownToBrowserAsync();
+        }
+
+        base.OnPropertyChanged(e);
     }
 
     public WebView2 BrowserView => _browser.WebView;
@@ -87,20 +88,55 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
         set => SetProperty(ref _currentSourceCode, value);
     }
 
-    private ObservableCollection<ChatMessage> _chatMessages = new();
+    private ObservableCollection<ChatMessage> _messages = new();
 
-    public ObservableCollection<ChatMessage> ChatMessages
+    public ObservableCollection<ChatMessage> Messages
     {
-        get => _chatMessages;
-        set => SetProperty(ref _chatMessages, value);
+        get => _messages;
+        set => SetProperty(ref _messages, value);
     }
 
-    private ObservableCollection<ChatMessageSession> _chatMessageSessions = new();
+    private ObservableCollection<ChatSession> _sessions = [];
 
-    public ObservableCollection<ChatMessageSession> ChatMessageSessions
+    public ObservableCollection<ChatSession> Sessions
     {
-        get => _chatMessageSessions;
-        set => SetProperty(ref _chatMessageSessions, value);
+        get => _sessions;
+        set => SetProperty(ref _sessions, value);
+    }
+
+    public ChatSession _currentSession = new ChatSession
+    {
+        Name = "New Chat Session"
+    };
+
+    public ChatSession CurrentSession
+    {
+        get => _currentSession;
+        set
+        {
+            SetProperty(ref _currentSession, value);
+            OnPropertyChanged(nameof(CurrentSessionName));
+        }
+    }
+
+    private async Task SelectCurrentSessionAsync()
+    {
+        if (_currentSession.Id != 0)
+        {
+            var chatRepo = new ChatDbRepository();
+            var messages = await chatRepo.GetMessagesAsync(_currentSession.Id);
+            Messages = new ObservableCollection<ChatMessage>(messages);
+        }
+    }
+
+    public string CurrentSessionName
+    {
+        get => _currentSession.Name;
+        set
+        {
+            _currentSession.Name = value;
+            OnPropertyChanged(nameof(CurrentSessionName));
+        }
     }
 
     private string _messagesAsMarkdown;
@@ -145,7 +181,26 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 
     public IAsyncRelayCommand PromptCommand { get; }
 
-    public async Task Prompt()
+    public async Task InitializeAsync()
+    {
+        var chatRepo = new ChatDbRepository();
+        await chatRepo.MigrateAsync();
+
+        var sessions = await chatRepo.GetSessionsAsync();
+        
+        _sessions = new ObservableCollection<ChatSession>(sessions);
+        var firstSession = sessions.FirstOrDefault();
+        if (firstSession != null)
+        {
+            CurrentSession = firstSession;
+            var messages = await chatRepo.GetMessagesAsync(_currentSession.Id);
+            _messages = new ObservableCollection<ChatMessage>(messages);
+
+            await UpdateMarkdownToBrowserAsync();
+        }
+    }
+
+    public async Task PromptAsync()
     {
         if (_api == null || !_browser.IsInitialized)
         {
@@ -161,7 +216,7 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 
         try
         {
-            var promptMessage = new ChatMessage("user",
+            var promptMessage = new ChatMessageModel("user",
                 string.IsNullOrWhiteSpace(CurrentSourceCode)
                 ?
                 CurrentCommandText
@@ -172,25 +227,80 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 ```
 ");
 
-            var replyMessages = await _api.Prompt(ChatMessageSessions
-                .Reverse()
-                .SelectMany(_ => new[] { _.Prompt }.Concat(_.Replies))
-                .Concat(new[] { promptMessage }));
+            //var replyMessages = await _api.Prompt(ChatMessageSessions
+            //    .Reverse()
+            //    .SelectMany(_ => new[] { _.Prompt }.Concat(_.Replies))
+            //    .Concat(new[] { promptMessage }));
 
-            var newChatSession = new ChatMessageSession(promptMessage, replyMessages.ToArray());
+            //var newChatSession = new ChatMessageSession(promptMessage, replyMessages.ToArray());
 
-            ChatMessageSessions.Add(newChatSession);
+            //ChatMessageSessions.Add(newChatSession);
 
-            foreach (var reply in replyMessages)
+            //foreach (var reply in replyMessages)
+            //{
+            //    ChatMessages.Insert(0, reply);
+            //}
+
+            var replyMessages = await _api.Prompt(
+                _messages.Select(_ => new ChatMessageModel(_.Role, _.Content)).Concat(new[] { promptMessage }));
+
+            var chatRepo = new ChatDbRepository();
+
+            if (_currentSession.Id == 0)
             {
-                ChatMessages.Insert(0, reply);
+                CurrentSession = new ChatSession
+                {
+                    Name = CurrentCommandText,
+                    Created = DateTime.Now,
+                    TimeStamp = DateTime.Now
+                };
+
+                await chatRepo.InsertSessionAsync(_currentSession);
+
+                _sessions.Add(_currentSession);
+            }
+            else
+            {
+                _currentSession.TimeStamp = DateTime.Now;
+                await chatRepo.UpdateSessionsAsync(_currentSession);
             }
 
-            ChatMessages.Insert(0, promptMessage);
+            var newPromptMessage = new ChatMessage
+            {
+                Role = "user",
+                Content = promptMessage.Content,
+                SessionId = _currentSession.Id
+            };
 
-            await UpdateMarkdownToBrowser();
+            //chatDbContext.Messages.Add(newPromptMessage);
+            await chatRepo.InsertMessagesAsync(newPromptMessage);
+            _messages.Add(newPromptMessage);
 
-            SaveCurrentCommandToRecentList();
+            var newMessages = new List<ChatMessage>();
+            foreach (var reply in replyMessages)
+            {
+                var newReplyMessage = new ChatMessage
+                {
+                    Role = reply.Role,
+                    Content = reply.Content,
+                    SessionId = _currentSession.Id
+                };
+
+                newMessages.Add(newReplyMessage);
+
+                _messages.Add(newReplyMessage);
+            }
+
+            await chatRepo.InsertMessagesAsync(newMessages.ToArray());
+            //await chatDbContext.SaveChangesAsync();
+
+            //ChatMessages.Insert(0, promptMessage);
+
+            await UpdateMarkdownToBrowserAsync();
+
+            //SaveCurrentCommandToRecentList();
+
+            CurrentCommandText = string.Empty;
 
             ErrorMessage = null;
         }
@@ -204,7 +314,7 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
         }
     }
 
-    private async Task UpdateMarkdownToBrowser()
+    private async Task UpdateMarkdownToBrowserAsync()
     {
         if (!_browser.IsInitialized)
         {
@@ -213,7 +323,7 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 
         MessagesAsMarkdown = _markupCodeHighlighter.TransformMarkdown(
             string.Join(Environment.NewLine + Environment.NewLine,
-            ChatMessages.Select(_ =>
+            Messages.Select(_ =>
             {
                 if (_.Role != "user")
                 {
@@ -233,47 +343,53 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
         await _browser.UpdateBrowserAsync(html);
     }
 
-    internal async Task ClearAllMessages()
+    internal async Task NewMessageAsync()
     {
-        ChatMessageSessions.Clear();
-        ChatMessages.Clear();
+        //ChatSessions.Clear();
+        //ChatMessages.Clear();
+        _currentSession = new ChatSession
+        {
+            Name = "New Chat Session"
+        }; 
+        _messages.Clear();
+
         _markupCodeHighlighter.ClearCopyCodeLinks();
 
-        await UpdateMarkdownToBrowser();
+        await UpdateMarkdownToBrowserAsync();
     }
 
-    private void SaveCurrentCommandToRecentList()
-    {
-        var currentText = Regex.Replace(_currentCommandText.Trim(), @"\s+", " ");
+    //private void SaveCurrentCommandToRecentList()
+    //{
+    //    var currentText = Regex.Replace(_currentCommandText.Trim(), @"\s+", " ");
 
-        if (string.IsNullOrWhiteSpace(currentText))
-        {
-            return;
-        }
+    //    if (string.IsNullOrWhiteSpace(currentText))
+    //    {
+    //        return;
+    //    }
 
-        var existingCommand = RecentCommands
-            .FirstOrDefault(_ => string.Compare(_, currentText, true) == 0);
+    //    var existingCommand = RecentCommands
+    //        .FirstOrDefault(_ => string.Compare(_, currentText, true) == 0);
 
-        if (existingCommand != null)
-        {
-            RecentCommands.Remove(existingCommand);
-        }
+    //    if (existingCommand != null)
+    //    {
+    //        RecentCommands.Remove(existingCommand);
+    //    }
 
-        RecentCommands.Insert(0, currentText);
-        if (RecentCommands.Count == 21)
-        {
-            RecentCommands.RemoveAt(20);
-        }
+    //    RecentCommands.Insert(0, currentText);
+    //    if (RecentCommands.Count == 21)
+    //    {
+    //        RecentCommands.RemoveAt(20);
+    //    }
 
-        CurrentCommandText = string.Empty;
-        CurrentSourceCode = string.Empty;
+    //    CurrentCommandText = string.Empty;
+    //    CurrentSourceCode = string.Empty;
 
-        File.WriteAllText(
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "recent_commands.json"),
-            JsonConvert.SerializeObject(RecentCommands));
-    }
+    //    File.WriteAllText(
+    //        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "recent_commands.json"),
+    //        JsonConvert.SerializeObject(RecentCommands));
+    //}
 
-    void OnCopyCodeToClipbard(string copyId)
+    void OnCopyCodeToClipboard(string copyId)
     {
         _markupCodeHighlighter.Copy(copyId);
     }
@@ -287,4 +403,4 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
     }    
 }
 
-record ChatMessageSession(ChatMessage Prompt, ChatMessage[] Replies);
+//record ChatMessageSession(ChatMessageModel Prompt, ChatMessageModel[] Replies);
