@@ -60,6 +60,8 @@
       <DependentUpon>source.extension.vsixmanifest</DependentUpon>
     </Compile>
     <Compile Include="ToolWindows\ChatToolWindowControlViewModel.cs" />
+    <Compile Include="ToolWindows\Converters\BoolToVisibilityConverter.cs" />
+    <Compile Include="ToolWindows\Converters\InverseBoolToVisibilityConverter.cs" />
     <Compile Include="ToolWindows\Converters\TrimStringConverter.cs" />
     <Compile Include="ToolWindows\Templates\ComboBoxTemplateSelector.cs" />
     <Compile Include="Utils\BrowserWrapper.cs" />

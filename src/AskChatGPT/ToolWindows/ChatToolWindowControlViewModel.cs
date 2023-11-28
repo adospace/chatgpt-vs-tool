@@ -45,11 +45,7 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 
         WeakReferenceMessenger.Default.Register<ShowChatGPTWindowMessage>(this);
 
-        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-        if (!string.IsNullOrEmpty(apiKey))
-        {
-            _api = new ChatApi(apiKey);
-        }
+        _api = new ChatApi();
     }
 
     private async void Browser_Initialized(object sender, EventArgs e)
@@ -70,7 +66,15 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 
     public WebView2 BrowserView => _browser.WebView;
 
-    public Visibility OpenAIMissingVisibility => _api == null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility OpenAIMissingVisibility => _api.IsValid ? Visibility.Collapsed : Visibility.Visible;
+
+    private bool _isAdditionalSourceCodeBoxVisible;
+    
+    public bool IsAdditionalSourceCodeBoxVisible
+    {
+        get => _isAdditionalSourceCodeBoxVisible;
+        set => SetProperty(ref _isAdditionalSourceCodeBoxVisible, value);
+    }
 
     private string _currentCommandText;
 
@@ -249,21 +253,24 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
         }
         else
         {
-            CurrentSession = new ChatSession
+            Sessions.Add(new ChatSession
             {
                 Name = "New Chat Session",
                 Created = DateTime.Now,
                 TimeStamp = DateTime.Now,
-            };
-            Sessions.Add(CurrentSession);
+            });
+
+            CurrentSession = Sessions.Last();
 
             Messages = new ObservableCollection<ChatMessage>();
+
+            await UpdateMarkdownToBrowserAsync();
         }
     }
 
     public async Task PromptAsync()
     {
-        if (_api == null || !_browser.IsInitialized)
+        if (!_api.IsValid || !_browser.IsInitialized)
         {
             return;
         }
@@ -368,8 +375,11 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
             //SaveCurrentCommandToRecentList();
 
             CurrentCommandText = string.Empty;
+            CurrentSourceCode = string.Empty;
 
             ErrorMessage = null;
+
+            IsAdditionalSourceCodeBoxVisible = false;
         }
         catch (Exception ex)
         {
@@ -420,10 +430,15 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
         });
         CurrentSession = Sessions.Last();
         Messages.Clear();
+        
+        CurrentCommandText = string.Empty;
+        CurrentSourceCode = string.Empty;
 
         _markupCodeHighlighter.ClearCopyCodeLinks();
 
         await UpdateMarkdownToBrowserAsync();
+
+        IsAdditionalSourceCodeBoxVisible = false;
     }
 
     //private void SaveCurrentCommandToRecentList()

@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using AskChatGPT.Options;
+using Dapper;
 using Microsoft.Data.Sqlite;
 using Microsoft.VisualStudio.LanguageServer.Client;
 using System;
@@ -56,7 +57,7 @@ public class ChatDbRepository
     public async Task<IEnumerable<ChatSession>> GetSessionsAsync()
     {
         using var connection = new SqliteConnection($"Data Source={Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "chat.db")}");
-        return await connection.QueryAsync<ChatSession>("SELECT * FROM Sessions ORDER BY TimeStamp DESC;");
+        return await connection.QueryAsync<ChatSession>($"SELECT * FROM Sessions ORDER BY TimeStamp DESC LIMIT {AdvancedOptions.Instance.SessionLimit};");
     }
 
     public async Task<IEnumerable<ChatMessage>> GetMessagesAsync(int sessionId)

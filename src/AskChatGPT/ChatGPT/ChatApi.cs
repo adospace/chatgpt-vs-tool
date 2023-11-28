@@ -22,14 +22,18 @@ class ChatApi
             NullValueHandling = NullValueHandling.Ignore,
         };
 
-    public ChatApi(string apiKey)
+    public ChatApi()
     {
         _httpClientApi = new HttpClient();
-        _httpClientApi.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
     }
+
+    public bool IsValid => !string.IsNullOrWhiteSpace(AdvancedOptions.Instance.ApiKey);
 
     public async Task<IEnumerable<ChatMessageModel>> Prompt(IEnumerable<ChatMessageModel> messages)
     {
+        _httpClientApi.DefaultRequestHeaders.Authorization = 
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", AdvancedOptions.Instance.ApiKey);
+
         var body = new 
         {
             model = AdvancedOptions.Instance.GptModel,

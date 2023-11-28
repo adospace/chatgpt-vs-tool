@@ -26,6 +26,9 @@
     </UserControl.InputBindings>
     <UserControl.Resources>
         <converters:TrimStringConverter x:Key="TrimStringConverter"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+
         <DataTemplate x:Key="SelectedSessionItemTemplate">
             <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
         </DataTemplate>
@@ -106,29 +109,43 @@
                     Margin="4">
                     <Hyperlink Click="NewSession_Click">New Session</Hyperlink>
                 </TextBlock>
-            </Grid>            
+            </Grid>
+
             <TextBox
-                Text="{Binding CurrentCommandText, UpdateSourceTrigger=PropertyChanged}"
-                
+                Text="{Binding CurrentCommandText, UpdateSourceTrigger=PropertyChanged}"                
                 AcceptsReturn="True"
+                TextWrapping="Wrap"
                 MaxHeight="400"
                 VerticalScrollBarVisibility="Auto"
-                IsEnabled="{Binding IsNotBusy}"
+                HorizontalScrollBarVisibility="Disabled"
+                IsEnabled="{Binding IsNotBusy}"                    
+                MinHeight="60"
                 Margin="4, 0, 4, 4"
-                MinHeight="80"
                 />
-            <!--<Label 
-                Content="Enter additional source code:"
-                />
-            <TextBox
-                Text="{Binding CurrentSourceCode, UpdateSourceTrigger=PropertyChanged}"
-                AcceptsReturn="True"
-                MaxHeight="400"
-                VerticalScrollBarVisibility="Auto"
-                FontFamily="Cascadia Mono"
-                IsEnabled="{Binding IsNotBusy}"
-                Margin="4,0"
-                />-->
+
+            <TextBlock
+                Visibility="{Binding IsAdditionalSourceCodeBoxVisible, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                HorizontalAlignment="Right"
+                Margin="4">
+                <Hyperlink Click="ShowAdditionalCodeBox">Add additional code</Hyperlink>
+            </TextBlock>
+
+            <StackPanel
+                Visibility="{Binding IsAdditionalSourceCodeBoxVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Label 
+                    Content="Enter additional source code:"
+                    />
+                <TextBox
+                    Text="{Binding CurrentSourceCode, UpdateSourceTrigger=PropertyChanged}"
+                    AcceptsReturn="True"
+                    MaxHeight="400"
+                    MinHeight="60"
+                    VerticalScrollBarVisibility="Auto"
+                    FontFamily="Cascadia Mono"
+                    IsEnabled="{Binding IsNotBusy}"
+                    Margin="4,0,4,4"
+                    />                
+            </StackPanel>
             <!--<TextBlock 
                     Text="Press Ctrl+Enter to send the question"
                     Margin="4"
@@ -156,9 +173,7 @@
                 <LineBreak/>
                 <Hyperlink>https://platform.openai.com/account/api-keys</Hyperlink>
                 <LineBreak/>
-                <Run>2) Create an environment variable OPENAI_API_KEY with your key</Run>
-                <LineBreak/>
-                <Run>3) Restart Visual Studio</Run>
+                <Run>2) Enter the key from VisualStudio menu Tools->AskChatGPT</Run>
             </TextBlock>
                 
             <TextBlock

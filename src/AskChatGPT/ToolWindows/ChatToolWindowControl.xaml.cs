@@ -29,5 +29,10 @@ namespace AskChatGPT
             System.Diagnostics.Debug.WriteLine(comboBox.SelectedIndex);
 
         }
+
+        private void ShowAdditionalCodeBox(object sender, RoutedEventArgs e)
+        {
+            ((ChatToolWindowControlViewModel)DataContext).IsAdditionalSourceCodeBoxVisible = true;
+        }
     }
 }

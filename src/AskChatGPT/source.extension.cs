@@ -11,7 +11,7 @@ namespace AskChatGPT
         public const string Name = "AskChatGPT";
         public const string Description = @"This extension allows you to get help from ChatGPT directly inside Visual Studio.";
         public const string Language = "en-US";
-        public const string Version = "1.2";
+        public const string Version = "1.3";
         public const string Author = "Adolfo Marinucci";
         public const string Tags = "";
     }
