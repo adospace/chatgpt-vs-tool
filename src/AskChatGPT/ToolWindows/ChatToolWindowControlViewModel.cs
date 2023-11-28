@@ -38,8 +38,10 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
     public ChatToolWindowControlViewModel()
     {
         PromptCommand = new AsyncRelayCommand(PromptAsync, () => IsNotBusy);
+        DeleteSessionCommand = new AsyncRelayCommand(DeleteSessionAsync, () => IsNotBusy);
 
         _browser = new BrowserWrapper(OnCopyCodeToClipboard);
+        _browser.Initialized += Browser_Initialized;
 
         WeakReferenceMessenger.Default.Register<ShowChatGPTWindowMessage>(this);
 
@@ -48,6 +50,11 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
         {
             _api = new ChatApi(apiKey);
         }
+    }
+
+    private async void Browser_Initialized(object sender, EventArgs e)
+    {
+        await UpdateMarkdownToBrowserAsync();
     }
 
     protected override async void OnPropertyChanged(PropertyChangedEventArgs e)
@@ -106,7 +113,9 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 
     public ChatSession _currentSession = new ChatSession
     {
-        Name = "New Chat Session"
+        Name = "New Chat Session",
+        Created = DateTime.Now,
+        TimeStamp = DateTime.Now,
     };
 
     public ChatSession CurrentSession
@@ -114,14 +123,17 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
         get => _currentSession;
         set
         {
-            SetProperty(ref _currentSession, value);
-            OnPropertyChanged(nameof(CurrentSessionName));
+            if (value != null)
+            {
+                SetProperty(ref _currentSession, value);
+                OnPropertyChanged(nameof(CurrentSessionName));
+            }
         }
     }
 
     private async Task SelectCurrentSessionAsync()
     {
-        if (_currentSession.Id != 0)
+        if (_currentSession != null && _currentSession.Id != 0)
         {
             var chatRepo = new ChatDbRepository();
             var messages = await chatRepo.GetMessagesAsync(_currentSession.Id);
@@ -131,11 +143,14 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 
     public string CurrentSessionName
     {
-        get => _currentSession.Name;
+        get => _currentSession?.Name;
         set
         {
-            _currentSession.Name = value;
-            OnPropertyChanged(nameof(CurrentSessionName));
+            if (_currentSession != null && value != typeof(ChatSession).FullName)
+            {
+                _currentSession.Name = value;
+                OnPropertyChanged(nameof(CurrentSessionName));
+            }
         }
     }
 
@@ -181,6 +196,8 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 
     public IAsyncRelayCommand PromptCommand { get; }
 
+    public IAsyncRelayCommand DeleteSessionCommand { get; }
+
     public async Task InitializeAsync()
     {
         var chatRepo = new ChatDbRepository();
@@ -188,15 +205,59 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 
         var sessions = await chatRepo.GetSessionsAsync();
         
-        _sessions = new ObservableCollection<ChatSession>(sessions);
+        Sessions = new ObservableCollection<ChatSession>(sessions);
         var firstSession = sessions.FirstOrDefault();
         if (firstSession != null)
         {
             CurrentSession = firstSession;
+
             var messages = await chatRepo.GetMessagesAsync(_currentSession.Id);
-            _messages = new ObservableCollection<ChatMessage>(messages);
+            
+            Messages = new ObservableCollection<ChatMessage>(messages);
 
             await UpdateMarkdownToBrowserAsync();
+        }
+        else
+        {
+            Sessions.Add(CurrentSession);
+        }
+    }
+
+    private async Task DeleteSessionAsync()
+    {
+        if (CurrentSession == null)
+        {
+            return;
+        }
+
+        var sessionIndex = Sessions.IndexOf(CurrentSession);
+
+        var chatRepo = new ChatDbRepository();
+        await chatRepo.DeleteSessionsAsync(CurrentSession.Id);
+
+        Sessions.Remove(CurrentSession);
+
+        if (sessionIndex == Sessions.Count)
+        {
+            sessionIndex--;
+        }
+
+        if (sessionIndex >= 0 &&
+            sessionIndex <= Sessions.Count - 1)
+        {
+            CurrentSession = Sessions[sessionIndex];
+        }
+        else
+        {
+            CurrentSession = new ChatSession
+            {
+                Name = "New Chat Session",
+                Created = DateTime.Now,
+                TimeStamp = DateTime.Now,
+            };
+            Sessions.Add(CurrentSession);
+
+            Messages = new ObservableCollection<ChatMessage>();
         }
     }
 
@@ -248,16 +309,22 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 
             if (_currentSession.Id == 0)
             {
-                CurrentSession = new ChatSession
+                _sessions.Remove(_currentSession);
+
+                var sessionName = CurrentCommandText
+                    .Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)
+                    .FirstOrDefault(_ => !string.IsNullOrWhiteSpace(_)) ?? "New Chat Session";
+
+                Sessions.Add(new ChatSession
                 {
-                    Name = CurrentCommandText,
+                    Name = sessionName,
                     Created = DateTime.Now,
                     TimeStamp = DateTime.Now
-                };
+                });
 
-                await chatRepo.InsertSessionAsync(_currentSession);
+                CurrentSession = Sessions.Last();
 
-                _sessions.Add(_currentSession);
+                await chatRepo.InsertSessionAsync(CurrentSession);
             }
             else
             {
@@ -347,11 +414,12 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
     {
         //ChatSessions.Clear();
         //ChatMessages.Clear();
-        _currentSession = new ChatSession
+        Sessions.Add(new ChatSession
         {
             Name = "New Chat Session"
-        }; 
-        _messages.Clear();
+        });
+        CurrentSession = Sessions.Last();
+        Messages.Clear();
 
         _markupCodeHighlighter.ClearCopyCodeLinks();
 

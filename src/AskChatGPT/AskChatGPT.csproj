@@ -60,6 +60,8 @@
       <DependentUpon>source.extension.vsixmanifest</DependentUpon>
     </Compile>
     <Compile Include="ToolWindows\ChatToolWindowControlViewModel.cs" />
+    <Compile Include="ToolWindows\Converters\TrimStringConverter.cs" />
+    <Compile Include="ToolWindows\Templates\ComboBoxTemplateSelector.cs" />
     <Compile Include="Utils\BrowserWrapper.cs" />
     <Compile Include="Utils\MarkdownToHtmlConverter.cs" />
     <Compile Include="Utils\MarkupCodeHighlighter.cs" />
@@ -70,6 +72,8 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Resources\Delete.png" />
+    <Resource Include="Resources\Remove.png" />
     <Content Include="Utils\highlight-dark.css">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>

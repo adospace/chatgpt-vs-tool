@@ -23,6 +23,11 @@ namespace AskChatGPT
             await ((ChatToolWindowControlViewModel)DataContext).NewMessageAsync();
         }
 
+        private void SelectedSessionIndexChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            var comboBox = (ComboBox)sender;
+            System.Diagnostics.Debug.WriteLine(comboBox.SelectedIndex);
 
+        }
     }
 }

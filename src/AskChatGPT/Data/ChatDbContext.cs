@@ -117,7 +117,7 @@ public class ChatDbRepository
             await connection.ExecuteAsync("""
             DELETE FROM Sessions 
             WHERE Id = @id
-        """, id);
+        """, new { id });
         }
     }
     public async Task DeleteMessagesAsync(params int[] ids)
@@ -128,7 +128,7 @@ public class ChatDbRepository
             await connection.ExecuteAsync("""
             DELETE FROM Messages 
             WHERE Id = @id
-        """, id);
+        """, new { id });
         }
     }
 }

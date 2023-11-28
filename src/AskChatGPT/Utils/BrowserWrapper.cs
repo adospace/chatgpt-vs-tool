@@ -33,6 +33,8 @@ public class BrowserWrapper : IDisposable
     public WebView2 WebView { get; } = new() { HorizontalAlignment = HorizontalAlignment.Stretch, Margin = new Thickness(0), Visibility = Visibility.Hidden };
     public bool IsInitialized { get; private set; }
 
+    public event EventHandler Initialized;
+
     public BrowserWrapper(Action<string> copyCodeAction)
     {
         WebView.Initialized += BrowserInitialized;
@@ -67,6 +69,8 @@ public class BrowserWrapper : IDisposable
             await UpdateBrowserAsync(string.Empty);
 
             IsInitialized = true;
+
+            Initialized?.Invoke(this, EventArgs.Empty);
         }).FireAndForget();
 
         async Task InitializeWebView2CoreAsync()

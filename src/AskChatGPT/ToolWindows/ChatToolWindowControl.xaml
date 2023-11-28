@@ -9,7 +9,10 @@
              xmlns:catalog="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.ImageCatalog"
              xmlns:toolkit="clr-namespace:Community.VisualStudio.Toolkit;assembly=Community.VisualStudio.Toolkit"
              xmlns:vsShell="clr-namespace:Microsoft.Internal.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
+             xmlns:shell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
              xmlns:local="clr-namespace:AskChatGPT.ToolWindows"
+             xmlns:templates="clr-namespace:AskChatGPT.ToolWindows.Templates"
+             xmlns:converters="clr-namespace:AskChatGPT.ToolWindows.Converters"
              toolkit:Themes.UseVsTheme="True"
              mc:Ignorable="d"
              d:DesignHeight="300"
@@ -21,6 +24,18 @@
     <UserControl.InputBindings>
         <KeyBinding Command="{Binding PromptCommand}" Key="Return" Modifiers="Ctrl"></KeyBinding>
     </UserControl.InputBindings>
+    <UserControl.Resources>
+        <converters:TrimStringConverter x:Key="TrimStringConverter"/>
+        <DataTemplate x:Key="SelectedSessionItemTemplate">
+            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+        </DataTemplate>
+        <DataTemplate x:Key="DropdownSessionItemsTemplate">
+            <Grid>
+                <TextBlock Text="{Binding TimeStamp}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Name, Converter={StaticResource TrimStringConverter}}" VerticalAlignment="Center" HorizontalAlignment="Left" /> <!--Margin="0,0,4,0" Background="{DynamicResource {x:Static shell:VsBrushes.ComboBoxPopupBackgroundBeginKey}}"-->
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -28,23 +43,43 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ComboBox
-            Text="{Binding CurrentSessionName, UpdateSourceTrigger=PropertyChanged}"
-            IsEditable="True"
-            SelectedItem="{Binding CurrentSession, Mode=TwoWay}"
-            MaxHeight="400"
-            IsEnabled="{Binding IsNotBusy}"
-            ItemsSource="{Binding Sessions}"
-            Margin="4,0">
-            <ComboBox.ItemTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <TextBlock Text="{Binding TimeStamp}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-                    </Grid>
-                </DataTemplate>
-            </ComboBox.ItemTemplate>
-        </ComboBox>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="24"/>
+            </Grid.ColumnDefinitions>
+            <ComboBox
+                
+                SelectedItem="{Binding CurrentSession}"
+                MaxHeight="400"
+                IsEnabled="{Binding IsNotBusy}"
+                ItemsSource="{Binding Sessions}"
+                ItemTemplateSelector="{templates:ComboBoxTemplateSelector
+                    SelectedItemTemplate={StaticResource SelectedSessionItemTemplate},
+                    DropdownItemsTemplate={StaticResource DropdownSessionItemsTemplate}}">
+                <ComboBox.ItemContainerStyle>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ComboBox.ItemContainerStyle>
+            </ComboBox>
+            
+            <Button 
+                Command="{Binding DeleteSessionCommand}"
+                ToolTipService.ToolTip="Delete Chat Session"
+                Grid.Column="1"
+                BorderThickness="0"
+                MinWidth="24"
+                Padding="0"
+                >
+                <Image
+                    Source="pack://application:,,,/AskChatGPT;component/Resources/Remove.png"
+                    Stretch="None"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    />
+            </Button>
+        </Grid>
 
         <ContentPresenter
             Grid.Row="1"
@@ -54,6 +89,13 @@
         <StackPanel
             Grid.Row="2"
             >
+
+            <ProgressBar
+                IsIndeterminate="True"
+                Visibility="{Binding IsBusyIndicatorVisibility}"
+                Margin="4"
+                />
+            
             <Grid
                 Visibility="{Binding IsNotBusyIndicatorVisibility}">
                 <Label 
@@ -67,12 +109,13 @@
             </Grid>            
             <TextBox
                 Text="{Binding CurrentCommandText, UpdateSourceTrigger=PropertyChanged}"
+                
                 AcceptsReturn="True"
                 MaxHeight="400"
                 VerticalScrollBarVisibility="Auto"
                 IsEnabled="{Binding IsNotBusy}"
-                Margin="4,0"
-                MinHeight="120"
+                Margin="4, 0, 4, 4"
+                MinHeight="80"
                 />
             <!--<Label 
                 Content="Enter additional source code:"
@@ -123,11 +166,6 @@
                 Visibility="{Binding ErrorMessageVisibility}"
                 Margin="4"
                 TextWrapping="Wrap"
-                />
-            <ProgressBar
-                IsIndeterminate="True"
-                Visibility="{Binding IsBusyIndicatorVisibility}"
-                Margin="4"
                 />
         </StackPanel>
     </Grid>
