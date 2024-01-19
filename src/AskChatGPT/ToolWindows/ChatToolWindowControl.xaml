@@ -43,7 +43,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" MinHeight="150"/>
         </Grid.RowDefinitions>
 
         <Grid>
@@ -87,19 +87,36 @@
         <ContentPresenter
             Grid.Row="1"
             Content="{Binding BrowserView}"
-            Margin="4"/>
-        
-        <StackPanel
+            Margin="4,4,4,8"/>
+
+        <GridSplitter 
+            Background="Transparent"
+            VerticalAlignment="Bottom" 
+            HorizontalAlignment="Stretch"
+            Grid.Row="1"
+            Height="8"/>
+
+        <Grid
             Grid.Row="2"
             >
-
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*" MinHeight="60"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
             <ProgressBar
                 IsIndeterminate="True"
                 Visibility="{Binding IsBusyIndicatorVisibility}"
                 Margin="4"
                 />
-            
+
             <Grid
+                Grid.Row="1"
                 Visibility="{Binding IsNotBusyIndicatorVisibility}">
                 <Label 
                     Content="Enter your question (Ctrl+Enter to send):"/>
@@ -112,18 +129,18 @@
             </Grid>
 
             <TextBox
+                Grid.Row="2"
                 Text="{Binding CurrentCommandText, UpdateSourceTrigger=PropertyChanged}"                
                 AcceptsReturn="True"
                 TextWrapping="Wrap"
-                MaxHeight="400"
                 VerticalScrollBarVisibility="Auto"
                 HorizontalScrollBarVisibility="Disabled"
-                IsEnabled="{Binding IsNotBusy}"                    
-                MinHeight="60"
+                IsEnabled="{Binding IsNotBusy}"
                 Margin="4, 0, 4, 4"
                 />
 
             <TextBlock
+                Grid.Row="3"
                 Visibility="{Binding IsAdditionalSourceCodeBoxVisible, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                 HorizontalAlignment="Right"
                 Margin="4">
@@ -131,6 +148,7 @@
             </TextBlock>
 
             <StackPanel
+                Grid.Row="4"
                 Visibility="{Binding IsAdditionalSourceCodeBoxVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                 <Label 
                     Content="Enter additional source code:"
@@ -146,24 +164,9 @@
                     Margin="4,0,4,4"
                     />                
             </StackPanel>
-            <!--<TextBlock 
-                    Text="Press Ctrl+Enter to send the question"
-                    Margin="4"
-                />-->
-            <!--<Grid
-                Visibility="{Binding IsNotBusyIndicatorVisibility}">
-                <TextBlock 
-                    Text="Press Ctrl+Enter to send the question"
-                    Margin="4"
-                />
-                <TextBlock
-                    Grid.Row="4"
-                    HorizontalAlignment="Right"
-                    Margin="4">
-                    <Hyperlink Click="ClearAllLink_Click">Clear Chat History</Hyperlink>
-                </TextBlock>
-            </Grid>-->
+
             <TextBlock
+                Grid.Row="5"
                 Margin="4"
                 Visibility="{Binding OpenAIMissingVisibility}">
                 <Run>Unable to find the ChatGPT key.</Run>
@@ -175,13 +178,14 @@
                 <LineBreak/>
                 <Run>2) Enter the key from VisualStudio menu Tools->AskChatGPT</Run>
             </TextBlock>
-                
+
             <TextBlock
+                Grid.Row="6"
                 Text="{Binding ErrorMessage}"
                 Visibility="{Binding ErrorMessageVisibility}"
                 Margin="4"
                 TextWrapping="Wrap"
                 />
-        </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>

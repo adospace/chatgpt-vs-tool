@@ -294,23 +294,18 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
 {CurrentSourceCode}
 ```
 ");
+            var promptMessages = new List<ChatMessageModel>();
 
-            //var replyMessages = await _api.Prompt(ChatMessageSessions
-            //    .Reverse()
-            //    .SelectMany(_ => new[] { _.Prompt }.Concat(_.Replies))
-            //    .Concat(new[] { promptMessage }));
+            if (!string.IsNullOrWhiteSpace(AdvancedOptions.Instance.Prompt))
+            {
+                var systemMessage = new ChatMessageModel("system", AdvancedOptions.Instance.Prompt);
 
-            //var newChatSession = new ChatMessageSession(promptMessage, replyMessages.ToArray());
+                promptMessages.Add(systemMessage);
+            }
 
-            //ChatMessageSessions.Add(newChatSession);
-
-            //foreach (var reply in replyMessages)
-            //{
-            //    ChatMessages.Insert(0, reply);
-            //}
-
-            var replyMessages = await _api.Prompt(
-                _messages.Select(_ => new ChatMessageModel(_.Role, _.Content)).Concat(new[] { promptMessage }));
+            var replyMessages = await _api.Prompt(promptMessages
+                .Concat(_messages.Select(_ => new ChatMessageModel(_.Role, _.Content)))
+                .Concat(new[] { promptMessage }));
 
             var chatRepo = new ChatDbRepository();
 
@@ -366,13 +361,8 @@ partial class ChatToolWindowControlViewModel : ObservableObject, IRecipient<Show
             }
 
             await chatRepo.InsertMessagesAsync(newMessages.ToArray());
-            //await chatDbContext.SaveChangesAsync();
-
-            //ChatMessages.Insert(0, promptMessage);
 
             await UpdateMarkdownToBrowserAsync();
-
-            //SaveCurrentCommandToRecentList();
 
             CurrentCommandText = string.Empty;
             CurrentSourceCode = string.Empty;

@@ -43,6 +43,11 @@ public class AdvancedOptions : BaseOptionModel<AdvancedOptions>, IRatingConfig
     [Description("Total number of active chat sessions.")]
     [DefaultValue("40")]
     public int SessionLimit { get; set; } = 40;
+
+    [DisplayName("Prompt")]
+    [Description("Enter the prompt (system message) you want to use for each chat session.")]
+    public string Prompt { get; set; }
+
 }
 
 public enum Theme
